@@ -1,16 +1,50 @@
-# React + Vite
+# NBA 65 Game Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web application that tracks NBA player eligibility for end-of-season awards based on the NBA’s 65-game requirement rule.
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+This project analyzes player availability throughout the season and categorizes players based on their likelihood of meeting the 65-game threshold required for awards such as MVP, All-NBA, and Defensive Player of the Year.
 
-## React Compiler
+The goal is to simulate real-world analytics workflows used by NBA front offices while building a scalable sports analytics platform.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features (Planned)
 
-## Expanding the ESLint configuration
+- Track players across multiple eligibility tiers:
+  - Eligible (65+ games)
+  - Safe
+  - Near Risk
+  - On Pace to Miss
+  - Eliminated
+- Injury-aware tracking (context for missed games)
+- Projection logic based on remaining games
+- Future: Award prediction engine (MVP, All-NBA, All-Defense, Rookie)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Tech Stack
+
+- React (Vite)
+- JavaScript
+- WSL (Linux development environment)
+- Git + GitHub (version control)
+
+## Project Structure
+
+src/
+  components/   # UI components
+  data/         # local datasets (players, etc.)
+  utils/        # calculation logic
+  services/     # API integration (future)
+
+## Getting Started
+
+1. Install dependencies
+
+npm install
+
+2. Run development server
+
+npm run dev
+
+3. Open in browser
+
+http://localhost:5173
