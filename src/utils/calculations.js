@@ -16,7 +16,7 @@ export function getProjectedFinalGames(gamesPlayed, teamGamesPlayed) {
   }
 
   const playRate = gamesPlayed / teamGamesPlayed;
-  return Number((playRate * 82).toFixed(1));
+  return Math.round(playRate * 82);
 }
 
 export function isMathematicallyEliminated(gamesPlayed, teamGamesPlayed) {
@@ -25,7 +25,7 @@ export function isMathematicallyEliminated(gamesPlayed, teamGamesPlayed) {
 
 export function getPlayerBucket(player) {
   if (player.gamesPlayed >= 65) {
-    return "In The Clear";
+    return "Award Eligible";
   }
 
   if (player.mathematicallyEliminated) {
@@ -33,14 +33,14 @@ export function getPlayerBucket(player) {
   }
 
   if (player.projectedFinalGames >= 70) {
-    return "Safe Zone";
+    return "On Pace";
   }
 
   if (player.projectedFinalGames >= 65) {
-    return "Cutting It Close";
+    return "Worth Monitoring";
   }
 
-  return "Danger Zone";
+  return "High Risk";
 }
 
 export function enrichPlayer(player) {
