@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import "./App.css";
-import { players } from "./data/players";
 import { enrichPlayers } from "./utils/calculations";
+import { getPlayers } from "./services/playerDataService";
 
 const tabs = [
   "All Players",
@@ -20,16 +20,52 @@ function getBucketClass(bucket) {
   return "ineligible";
 }
 
+function getStatusClass(status) {
+  const normalized = String(status ?? "Healthy").toLowerCase();
+
+  if (normalized.includes("out")) return "status-out";
+  if (
+    normalized.includes("questionable") ||
+    normalized.includes("doubtful") ||
+    normalized.includes("day-to-day")
+  ) {
+    return "status-warning";
+  }
+
+  return "status-good";
+}
+
+function formatExpectedReturn(dateString) {
+  if (!dateString) return "—";
+
+  const parsed = new Date(`${dateString}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return "—";
+
+  const month = parsed.getMonth() + 1;
+
+  if (month > 6) {
+    return "Next Year";
+  }
+
+  return parsed.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState("All Players");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("All Teams");
   const [sortConfig, setSortConfig] = useState({
-    key: "projectedFinalGames",
+    key: "adjustedProjectedFinalGames",
     direction: "desc",
   });
 
-  const enrichedPlayers = useMemo(() => enrichPlayers(players), []);
+  const enrichedPlayers = useMemo(() => {
+    const players = getPlayers();
+    return enrichPlayers(players);
+  }, []);
 
   const teamOptions = useMemo(() => {
     const teams = [...new Set(enrichedPlayers.map((player) => player.team))].sort();
@@ -118,10 +154,13 @@ function App() {
   return (
     <div className="app-container">
       <header className="page-header">
-        <div className="title-eyebrow">Awards Availability Dashboard</div>
+        <div className="title-eyebrow">Awards Eligibility Dashboard</div>
         <h1 className="main-title">NBA 65 Game Tracker</h1>
         <p className="page-subtitle">
-          See if your favorite player is on pace to be eligible for regular season awards this season.
+          Under the NBA’s current rules, players need to appear in at
+          least 65 regular season games to qualify for end-of-season awards. This
+          tracker shows who has already cleared that mark, who is on pace
+          to get there, and who may not be eligible.
         </p>
       </header>
 
@@ -243,41 +282,38 @@ function App() {
                   <th onClick={() => handleSort("gamesPlayed")} className="sortable">
                     GP{getSortArrow("gamesPlayed")}
                   </th>
-                  <th
-                    onClick={() => handleSort("teamGamesPlayed")}
-                    className="sortable"
-                  >
+                  <th onClick={() => handleSort("teamGamesPlayed")} className="sortable">
                     Team GP{getSortArrow("teamGamesPlayed")}
                   </th>
-                  <th
-                    onClick={() => handleSort("gamesRemaining")}
-                    className="sortable"
-                  >
-                    Remaining{getSortArrow("gamesRemaining")}
-                  </th>
                   <th onClick={() => handleSort("gamesNeeded")} className="sortable">
-                    Needed{getSortArrow("gamesNeeded")}
+                    Games Needed{getSortArrow("gamesNeeded")}
                   </th>
                   <th
-                    onClick={() => handleSort("maxPossibleFinalGames")}
+                    onClick={() => handleSort("adjustedMaxPossibleFinalGames")}
                     className="sortable"
                   >
-                    Max Final{getSortArrow("maxPossibleFinalGames")}
+                    Adj. Max{getSortArrow("adjustedMaxPossibleFinalGames")}
                   </th>
                   <th
-                    onClick={() => handleSort("projectedFinalGames")}
+                    onClick={() => handleSort("adjustedProjectedFinalGames")}
                     className="sortable"
                   >
-                    Projected Final{getSortArrow("projectedFinalGames")}
+                    Adj. Proj{getSortArrow("adjustedProjectedFinalGames")}
+                  </th>
+                  <th onClick={() => handleSort("expectedMissedGames")} className="sortable">
+                    Exp. Missed{getSortArrow("expectedMissedGames")}
                   </th>
                   <th
-                    onClick={() => handleSort("mathematicallyEliminated")}
+                    onClick={() => handleSort("estimatedReturnDate")}
                     className="sortable"
                   >
-                    Eliminated?{getSortArrow("mathematicallyEliminated")}
+                    Expected Return{getSortArrow("estimatedReturnDate")}
+                  </th>
+                  <th onClick={() => handleSort("status")} className="sortable">
+                    Status{getSortArrow("status")}
                   </th>
                   <th onClick={() => handleSort("bucket")} className="sortable">
-                    Bucket{getSortArrow("bucket")}
+                    Outlook{getSortArrow("bucket")}
                   </th>
                 </tr>
               </thead>
@@ -287,15 +323,27 @@ function App() {
 
                   return (
                     <tr key={player.id} className={rowClass}>
-                      <td>{player.name}</td>
+                      <td>
+                        <div className="player-name-cell">
+                          <span className="player-name">{player.name}</span>
+                          {player.injuryNote && (
+                            <span className="injury-note-text">{player.injuryNote}</span>
+                          )}
+                        </div>
+                      </td>
                       <td>{player.team}</td>
                       <td>{player.gamesPlayed}</td>
                       <td>{player.teamGamesPlayed}</td>
-                      <td>{player.gamesRemaining}</td>
                       <td>{player.gamesNeeded}</td>
-                      <td>{player.maxPossibleFinalGames}</td>
-                      <td>{player.projectedFinalGames}</td>
-                      <td>{player.mathematicallyEliminated ? "Yes" : "No"}</td>
+                      <td>{player.adjustedMaxPossibleFinalGames}</td>
+                      <td>{player.adjustedProjectedFinalGames}</td>
+                      <td>{player.expectedMissedGames}</td>
+                      <td>{formatExpectedReturn(player.estimatedReturnDate)}</td>
+                      <td>
+                        <div className={`status-chip ${getStatusClass(player.status)}`}>
+                          {player.status || "Healthy"}
+                        </div>
+                      </td>
                       <td className="bucket-text">{player.bucket}</td>
                     </tr>
                   );
@@ -303,7 +351,7 @@ function App() {
 
                 {filteredPlayers.length === 0 && (
                   <tr className="empty-row">
-                    <td colSpan="10" className="empty-cell">
+                    <td colSpan="11" className="empty-cell">
                       No players match the current filter.
                     </td>
                   </tr>
@@ -324,27 +372,37 @@ function App() {
 
           <div className="glossary-card">
             <h3>Team GP</h3>
-            <p>The number of regular-season games the player’s team has played so far.</p>
+            <p>The number of regular-season games the player’s current team has played so far.</p>
           </div>
 
           <div className="glossary-card">
-            <h3>Remaining</h3>
-            <p>How many games are left on the team’s 82-game schedule.</p>
-          </div>
-
-          <div className="glossary-card">
-            <h3>Needed</h3>
+            <h3>Games Needed</h3>
             <p>How many more games the player still needs to reach 65.</p>
           </div>
 
           <div className="glossary-card">
-            <h3>Max Final</h3>
-            <p>The best-case finish if the player appears in every game left.</p>
+            <h3>Adj. Max</h3>
+            <p>The player’s best-case finish after accounting for expected missed games.</p>
           </div>
 
           <div className="glossary-card">
-            <h3>Projected Final</h3>
-            <p>An estimate of where the player would finish if they stay on their current pace.</p>
+            <h3>Adj. Proj</h3>
+            <p>The player’s projected finish after accounting for expected missed games.</p>
+          </div>
+
+          <div className="glossary-card">
+            <h3>Exp. Missed</h3>
+            <p>Estimated games the player is expected to miss before returning.</p>
+          </div>
+
+          <div className="glossary-card">
+            <h3>Expected Return</h3>
+            <p>The estimated date the player is expected back, or Next Year if it falls after June.</p>
+          </div>
+
+          <div className="glossary-card">
+            <h3>Outlook</h3>
+            <p>The player’s overall eligibility outlook based on availability, schedule, and injury context.</p>
           </div>
 
           <div className="glossary-card">
@@ -359,17 +417,17 @@ function App() {
 
           <div className="glossary-card">
             <h3>Worth Monitoring</h3>
-            <p>The player is still on track, but the cushion is getting smaller.</p>
+            <p>The player is still on track, but the margin is getting tighter.</p>
           </div>
 
           <div className="glossary-card">
             <h3>High Risk</h3>
-            <p>The player can still get there, but right now the math is not in their favor.</p>
+            <p>The player still has a path, but missed time is putting 65 in real danger.</p>
           </div>
 
           <div className="glossary-card">
             <h3>Ineligible</h3>
-            <p>The player can no longer reach 65, even in a best-case finish.</p>
+            <p>The player no longer has a realistic path to 65 based on the remaining schedule.</p>
           </div>
         </div>
       </section>
