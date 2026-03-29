@@ -23,6 +23,26 @@ export function isMathematicallyEliminated(gamesPlayed, teamGamesPlayed) {
   return getMaxPossibleFinalGames(gamesPlayed, teamGamesPlayed) < 65;
 }
 
+export function getPlayerBucket(player) {
+  if (player.gamesPlayed >= 65) {
+    return "In The Clear";
+  }
+
+  if (player.mathematicallyEliminated) {
+    return "Ineligible";
+  }
+
+  if (player.projectedFinalGames >= 70) {
+    return "Safe Zone";
+  }
+
+  if (player.projectedFinalGames >= 65) {
+    return "Cutting It Close";
+  }
+
+  return "Danger Zone";
+}
+
 export function enrichPlayer(player) {
   const gamesRemaining = getGamesRemaining(player.teamGamesPlayed);
   const gamesNeeded = getGamesNeeded(player.gamesPlayed);
@@ -39,13 +59,18 @@ export function enrichPlayer(player) {
     player.teamGamesPlayed
   );
 
-  return {
+  const enrichedPlayer = {
     ...player,
     gamesRemaining,
     gamesNeeded,
     maxPossibleFinalGames,
     projectedFinalGames,
     mathematicallyEliminated,
+  };
+
+  return {
+    ...enrichedPlayer,
+    bucket: getPlayerBucket(enrichedPlayer),
   };
 }
 

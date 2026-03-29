@@ -8,7 +8,7 @@ function App() {
   return (
     <div style={{ padding: "2rem" }}>
       <h1>NBA 65 Game Tracker</h1>
-      <p>Issue #3 calculation test</p>
+      <p>Issue #4 bucket logic test</p>
 
       <table border="1" cellPadding="8" style={{ borderCollapse: "collapse" }}>
         <thead>
@@ -22,6 +22,7 @@ function App() {
             <th>Max Final</th>
             <th>Projected Final</th>
             <th>Eliminated?</th>
+            <th>Bucket</th>
           </tr>
         </thead>
         <tbody>
@@ -36,6 +37,7 @@ function App() {
               <td>{player.maxPossibleFinalGames}</td>
               <td>{player.projectedFinalGames}</td>
               <td>{player.mathematicallyEliminated ? "Yes" : "No"}</td>
+              <td>{player.bucket}</td>
             </tr>
           ))}
         </tbody>
