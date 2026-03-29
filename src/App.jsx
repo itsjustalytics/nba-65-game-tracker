@@ -22,8 +22,19 @@ function getBucketClass(bucket) {
 
 function App() {
   const [activeTab, setActiveTab] = useState("All Players");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState("All Teams");
+  const [sortConfig, setSortConfig] = useState({
+    key: "projectedFinalGames",
+    direction: "desc",
+  });
 
   const enrichedPlayers = useMemo(() => enrichPlayers(players), []);
+
+  const teamOptions = useMemo(() => {
+    const teams = [...new Set(enrichedPlayers.map((player) => player.team))].sort();
+    return ["All Teams", ...teams];
+  }, [enrichedPlayers]);
 
   const summaryCounts = useMemo(() => {
     return {
@@ -47,12 +58,62 @@ function App() {
   }, [enrichedPlayers]);
 
   const filteredPlayers = useMemo(() => {
-    if (activeTab === "All Players") {
-      return enrichedPlayers;
+    let result = [...enrichedPlayers];
+
+    if (activeTab !== "All Players") {
+      result = result.filter((player) => player.bucket === activeTab);
     }
 
-    return enrichedPlayers.filter((player) => player.bucket === activeTab);
-  }, [activeTab, enrichedPlayers]);
+    if (selectedTeam !== "All Teams") {
+      result = result.filter((player) => player.team === selectedTeam);
+    }
+
+    if (searchTerm.trim() !== "") {
+      const lowerSearch = searchTerm.toLowerCase();
+      result = result.filter(
+        (player) =>
+          player.name.toLowerCase().includes(lowerSearch) ||
+          player.team.toLowerCase().includes(lowerSearch)
+      );
+    }
+
+    result.sort((a, b) => {
+      const { key, direction } = sortConfig;
+
+      let aValue = a[key];
+      let bValue = b[key];
+
+      if (typeof aValue === "string") aValue = aValue.toLowerCase();
+      if (typeof bValue === "string") bValue = bValue.toLowerCase();
+
+      if (aValue < bValue) return direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return direction === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [activeTab, selectedTeam, searchTerm, sortConfig, enrichedPlayers]);
+
+  function handleSort(key) {
+    setSortConfig((current) => {
+      if (current.key === key) {
+        return {
+          key,
+          direction: current.direction === "asc" ? "desc" : "asc",
+        };
+      }
+
+      return {
+        key,
+        direction: "asc",
+      };
+    });
+  }
+
+  function getSortArrow(key) {
+    if (sortConfig.key !== key) return "";
+    return sortConfig.direction === "asc" ? " ▲" : " ▼";
+  }
 
   return (
     <div className="app-container">
@@ -138,44 +199,118 @@ function App() {
         ))}
       </section>
 
-      <section className="table-section">
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Team</th>
-                <th>GP</th>
-                <th>Team GP</th>
-                <th>Remaining</th>
-                <th>Needed</th>
-                <th>Max Final</th>
-                <th>Projected Final</th>
-                <th>Eliminated?</th>
-                <th>Bucket</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPlayers.map((player) => {
-                const rowClass = getBucketClass(player.bucket);
+      <section className="table-controls">
+        <input
+          type="text"
+          placeholder="Search player or team..."
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+          className="search-input"
+        />
 
-                return (
-                  <tr key={player.id} className={rowClass}>
-                    <td>{player.name}</td>
-                    <td>{player.team}</td>
-                    <td>{player.gamesPlayed}</td>
-                    <td>{player.teamGamesPlayed}</td>
-                    <td>{player.gamesRemaining}</td>
-                    <td>{player.gamesNeeded}</td>
-                    <td>{player.maxPossibleFinalGames}</td>
-                    <td>{player.projectedFinalGames}</td>
-                    <td>{player.mathematicallyEliminated ? "Yes" : "No"}</td>
-                    <td className="bucket-text">{player.bucket}</td>
+        <select
+          className="team-select"
+          value={selectedTeam}
+          onChange={(event) => setSelectedTeam(event.target.value)}
+        >
+          {teamOptions.map((team) => (
+            <option key={team} value={team}>
+              {team}
+            </option>
+          ))}
+        </select>
+      </section>
+
+      <section className="table-section">
+        <div className="table-shell">
+          <div className="table-header-bar">
+            <span>
+              Showing {filteredPlayers.length} player
+              {filteredPlayers.length === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th onClick={() => handleSort("name")} className="sortable">
+                    Player{getSortArrow("name")}
+                  </th>
+                  <th onClick={() => handleSort("team")} className="sortable">
+                    Team{getSortArrow("team")}
+                  </th>
+                  <th onClick={() => handleSort("gamesPlayed")} className="sortable">
+                    GP{getSortArrow("gamesPlayed")}
+                  </th>
+                  <th
+                    onClick={() => handleSort("teamGamesPlayed")}
+                    className="sortable"
+                  >
+                    Team GP{getSortArrow("teamGamesPlayed")}
+                  </th>
+                  <th
+                    onClick={() => handleSort("gamesRemaining")}
+                    className="sortable"
+                  >
+                    Remaining{getSortArrow("gamesRemaining")}
+                  </th>
+                  <th onClick={() => handleSort("gamesNeeded")} className="sortable">
+                    Needed{getSortArrow("gamesNeeded")}
+                  </th>
+                  <th
+                    onClick={() => handleSort("maxPossibleFinalGames")}
+                    className="sortable"
+                  >
+                    Max Final{getSortArrow("maxPossibleFinalGames")}
+                  </th>
+                  <th
+                    onClick={() => handleSort("projectedFinalGames")}
+                    className="sortable"
+                  >
+                    Projected Final{getSortArrow("projectedFinalGames")}
+                  </th>
+                  <th
+                    onClick={() => handleSort("mathematicallyEliminated")}
+                    className="sortable"
+                  >
+                    Eliminated?{getSortArrow("mathematicallyEliminated")}
+                  </th>
+                  <th onClick={() => handleSort("bucket")} className="sortable">
+                    Bucket{getSortArrow("bucket")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPlayers.map((player) => {
+                  const rowClass = getBucketClass(player.bucket);
+
+                  return (
+                    <tr key={player.id} className={rowClass}>
+                      <td>{player.name}</td>
+                      <td>{player.team}</td>
+                      <td>{player.gamesPlayed}</td>
+                      <td>{player.teamGamesPlayed}</td>
+                      <td>{player.gamesRemaining}</td>
+                      <td>{player.gamesNeeded}</td>
+                      <td>{player.maxPossibleFinalGames}</td>
+                      <td>{player.projectedFinalGames}</td>
+                      <td>{player.mathematicallyEliminated ? "Yes" : "No"}</td>
+                      <td className="bucket-text">{player.bucket}</td>
+                    </tr>
+                  );
+                })}
+
+                {filteredPlayers.length === 0 && (
+                  <tr className="empty-row">
+                    <td colSpan="10" className="empty-cell">
+                      No players match the current filter.
+                    </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
